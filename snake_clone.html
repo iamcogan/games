@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snakey Game</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        #gameCanvas {
+            border: 2px solid #000;
+        }
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+
+        let snake = [
+            {x: 10, y: 10},
+        ];
+        let food = {x: 15, y: 15};
+        let turtle = {x: 5, y: 5};
+        let dx = 0;
+        let dy = 0;
+        let score = 0;
+
+        function drawGame() {
+            clearCanvas();
+            moveSnake();
+            drawSnake();
+            drawFood();
+            drawTurtle();
+            checkCollision();
+            updateScore();
+        }
+
+        function clearCanvas() {
+            ctx.fillStyle = '#90EE90';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        function moveSnake() {
+            const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                placeFood();
+            } else if (head.x === turtle.x && head.y === turtle.y) {
+                score += 2;
+                placeTurtle();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function drawSnake() {
+            snake.forEach((segment, index) => {
+                ctx.fillStyle = index === 0 ? '#006400' : '#228B22';
+                ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize - 2, gridSize - 2);
+            });
+        }
+
+        function drawFood() {
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(food.x * gridSize, food.y * gridSize, gridSize - 2, gridSize - 2);
+        }
+
+        function drawTurtle() {
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(turtle.x * gridSize, turtle.y * gridSize, gridSize - 2, gridSize - 2);
+        }
+
+        function placeFood() {
+            food.x = Math.floor(Math.random() * tileCount);
+            food.y = Math.floor(Math.random() * tileCount);
+        }
+
+        function placeTurtle() {
+            turtle.x = Math.floor(Math.random() * tileCount);
+            turtle.y = Math.floor(Math.random() * tileCount);
+        }
+
+        function checkCollision() {
+            const head = snake[0];
+
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                gameOver();
+            }
+
+            for (let i = 1; i < snake.length; i++) {
+                if (head.x === snake[i].x && head.y === snake[i].y) {
+                    gameOver();
+                }
+            }
+        }
+
+        function updateScore() {
+            scoreElement.textContent = `Score: ${score}`;
+        }
+
+        function gameOver() {
+            alert(`Game Over! Your score: ${score}`);
+            snake = [{x: 10, y: 10}];
+            dx = 0;
+            dy = 0;
+            score = 0;
+            placeFood();
+            placeTurtle();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (dy === 0) { dx = 0; dy = -1; }
+                    break;
+                case 'ArrowDown':
+                    if (dy === 0) { dx = 0; dy = 1; }
+                    break;
+                case 'ArrowLeft':
+                    if (dx === 0) { dx = -1; dy = 0; }
+                    break;
+                case 'ArrowRight':
+                    if (dx === 0) { dx = 1; dy = 0; }
+                    break;
+            }
+        });
+
+        setInterval(drawGame, 100);
+    </script>
+</body>
+</html>
