@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Game, Day 1 of 31</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #game {
+            background-color: #d0d0d0;
+            border: 2px solid #000;
+            padding: 10px;
+            width: 600px;
+        }
+        .score {
+            font-family: 'Courier New', monospace;
+            background-color: #000;
+            color: #0f0;
+            padding: 2px;
+            margin: 2px 0;
+        }
+        .debt { color: #f00; }
+        .guns { color: #ff0; }
+        .health {
+            width: 100%;
+            background-color: #00f;
+            height: 20px;
+            margin: 5px 0;
+        }
+        .locations {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        button {
+            margin: 2px;
+            padding: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 2px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        .action-button {
+            width: 50px;
+            padding: 2px;
+            margin: 0 2px;
+        }
+        #event-message {
+            background-color: #ffff99;
+            border: 1px solid #ffcc00;
+            padding: 10px;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game">
+        <h2>Trading Game, Day <span id="day">1</span> of 31</h2>
+        <div class="score">Cash: $<span id="cash">2,000</span></div>
+        <div class="score">Bank: $<span id="bank">0</span></div>
+        <div class="score debt">Debt: $<span id="debt">5,500</span></div>
+        <div class="score guns">Guns: <span id="guns">0</span></div>
+        <div class="health" id="health"></div>
+        <div>
+            <strong>Subway from <span id="current-location">Bronx</span>:</strong>
+            <div class="locations">
+                <button onclick="game.travel('Bronx')">Bronx</button>
+                <button onclick="game.travel('Manhattan')">Manhattan</button>
+                <button onclick="game.travel('Ghetto')">Ghetto</button>
+                <button onclick="game.travel('Coney Island')">Coney Island</button>
+                <button onclick="game.travel('Central Park')">Central Park</button>
+                <button onclick="game.travel('Brooklyn')">Brooklyn</button>
+            </div>
+        </div>
+        <div>
+            <h3>Trenchcoat Space: <span id="space">100</span>/100</h3>
+            <table id="drugList"></table>
+        </div>
+        <button onclick="game.newGame()">New Game</button>
+        <button onclick="game.exit()">Exit</button>
+        <div id="event-message"></div>
+    </div>
+
+    <script>
+        const game = {
+            day: 1,
+            cash: 2000,
+            bank: 0,
+            debt: 5500,
+            guns: 0,
+            health: 100,
+            location: 'Bronx',
+            space: 100,
+            drugs: {
+                'Cocaine': { owned: 0, available: 100, buyPrice: 0, sellPrice: 0 },
+                'Hashish': { owned: 0, available: 100, buyPrice: 0, sellPrice: 0 },
+                'Heroin': { owned: 0, available: 100, buyPrice: 0, sellPrice: 0 },
+                'Ecstasy': { owned: 0, available: 100, buyPrice: 0, sellPrice: 0 },
+                'Smack': { owned: 0, available: 100, buyPrice: 0, sellPrice: 0 },
+                'Opium': { owned: 0, available: 100, buyPrice: 0, sellPrice: 0 },
+                'Crack': { owned: 0, available: 100, buyPrice: 0, sellPrice: 0 },
+                'Peyote': { owned: 0, available: 100, buyPrice: 0, sellPrice: 0 },
+                'Shrooms': { owned: 0, available: 100, buyPrice: 0, sellPrice: 0 },
+                'Speed': { owned: 0, available: 100, buyPrice: 0, sellPrice: 0 },
+                'Weed': { owned: 0, available: 100, buyPrice: 0, sellPrice: 0 }
+            },
+
+            updateDisplay() {
+                document.getElementById('day').textContent = this.day;
+                document.getElementById('cash').textContent = this.cash.toLocaleString();
+                document.getElementById('bank').textContent = this.bank.toLocaleString();
+                document.getElementById('debt').textContent = this.debt.toLocaleString();
+                document.getElementById('guns').textContent = this.guns;
+                document.getElementById('health').style.width = `${this.health}%`;
+                document.getElementById('space').textContent = this.space;
+                document.getElementById('current-location').textContent = this.location;
+
+                const drugListEl = document.getElementById('drugList');
+                drugListEl.innerHTML = `
+                    <tr>
+                        <th>Drug</th>
+                        <th>Owned</th>
+                        <th>Available</th>
+                        <th>Buy Price</th>
+                        <th>Sell Price</th>
+                        <th>Actions</th>
+                    </tr>
+                `;
+                for (const [drug, info] of Object.entries(this.drugs)) {
+                    drugListEl.innerHTML += `
+                        <tr>
+                            <td>${drug}</td>
+                            <td>${info.owned}</td>
+                            <td>${info.available}</td>
+                            <td>$${info.buyPrice}</td>
+                            <td>$${info.sellPrice}</td>
+                            <td>
+                                <button class="action-button" onclick="game.buy('${drug}', 1)">Buy</button>
+                                <button class="action-button" onclick="game.sell('${drug}', 1)">Sell</button>
+                            </td>
+                        </tr>
+                    `;
+                }
+            },
+
+            travel(newLocation) {
+                if (this.location !== newLocation) {
+                    this.day++;
+                    if (this.day > 31) {
+                        this.endGame();
+                        return;
+                    }
+                    this.location = newLocation;
+                    this.generatePrices();
+                    this.checkForRandomEvent();
+                    this.updateDisplay();
+                }
+            },
+
+            generatePrices() {
+                for (const drug in this.drugs) {
+                    this.drugs[drug].buyPrice = Math.floor(Math.random() * 10000) + 1;
+                    this.drugs[drug].sellPrice = Math.floor(this.drugs[drug].buyPrice * 0.9);
+                    this.drugs[drug].available = Math.floor(Math.random() * 100) + 1;
+                }
+            },
+
+            buy(drug, quantity) {
+                const info = this.drugs[drug];
+                if (quantity > info.available) {
+                    this.showMessage("Not enough available to buy!");
+                    return;
+                }
+                const cost = info.buyPrice * quantity;
+                if (cost > this.cash) {
+                    this.showMessage("Not enough cash!");
+                    return;
+                }
+                if (this.space < quantity) {
+                    this.showMessage("Not enough space in trenchcoat!");
+                    return;
+                }
+                this.cash -= cost;
+                info.owned += quantity;
+                info.available -= quantity;
+                this.space -= quantity;
+                this.updateDisplay();
+            },
+
+            sell(drug, quantity) {
+                const info = this.drugs[drug];
+                if (quantity > info.owned) {
+                    this.showMessage("Not enough owned to sell!");
+                    return;
+                }
+                const profit = info.sellPrice * quantity;
+                this.cash += profit;
+                info.owned -= quantity;
+                info.available += quantity;
+                this.space += quantity;
+                this.updateDisplay();
+            },
+
+            newGame() {
+                this.day = 1;
+                this.cash = 2000;
+                this.bank = 0;
+                this.debt = 5500;
+                this.guns = 0;
+                this.health = 100;
+                this.location = 'Bronx';
+                this.space = 100;
+                for (const drug in this.drugs) {
+                    this.drugs[drug].owned = 0;
+                }
+                this.generatePrices();
+                this.updateDisplay();
+            },
+
+            exit() {
+                if (confirm("Are you sure you want to exit the game?")) {
+                    window.close();
+                }
+            },
+
+            checkForRandomEvent() {
+                if (Math.random() < 0.2) {  // 20% chance of a gang attack
+                    this.gangAttack();
+                }
+            },
+
+            gangAttack() {
+                const stolenCashPercentage = Math.random() * 0.1;  // Up to 10% of cash stolen
+                const stolenDrugsPercentage = Math.random() * 0.1;  // Up to 10% of drugs stolen
+
+                const stolenCash = Math.floor(this.cash * stolenCashPercentage);
+                this.cash -= stolenCash;
+
+                let stolenDrugsMessage = "";
+                for (const drug in this.drugs) {
+                    const stolenAmount = Math.floor(this.drugs[drug].owned * stolenDrugsPercentage);
+                    if (stolenAmount > 0) {
+                        this.drugs[drug].owned -= stolenAmount;
+                        this.space += stolenAmount;
+                        stolenDrugsMessage += `${stolenAmount} ${drug}, `;
+                    }
+                }
+
+                this.showMessage(`Gang Attack! You lost $${stolenCash} and ${stolenDrugsMessage.slice(0, -2)}.`);
+                this.updateDisplay();
+            },
+
+            showMessage(message) {
+                const messageEl = document.getElementById('event-message');
+                messageEl.textContent = message;
+                messageEl.style.display = 'block';
+                setTimeout(() => {
+                    messageEl.style.display = 'none';
+                }, 5000);
+            },
+
+            calculateScore() {
+                let score = this.cash + this.bank - this.debt;
+                for (const drug in this.drugs) {
+                    score += this.drugs[drug].owned * this.drugs[drug].sellPrice;
+                }
+                return score;
+            },
+
+            endGame() {
+                const finalScore = this.calculateScore();
+                alert(`Game Over! You've reached the end of 31 days.\nYour final score is: $${finalScore.toLocaleString()}`);
+                this.newGame();
+            }
+        };
+
+        game.generatePrices();
+        game.updateDisplay();
+    </script>
+</body>
+</html>
